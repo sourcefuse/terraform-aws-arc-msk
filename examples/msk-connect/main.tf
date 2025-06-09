@@ -111,6 +111,7 @@ EOT
   # Tags
   tags = module.tags.tags
 
+  depends_on = [aws_s3_object.this]
 }
 
 ################################################################################
@@ -269,17 +270,16 @@ resource "aws_db_subnet_group" "mysql" {
 }
 
 resource "aws_db_instance" "mysql" {
-  identifier           = "debezium-mysql-db"
-  engine               = "mysql"
-  instance_class       = "db.t3.micro"
-  allocated_storage    = 20
-  db_name              = "mydb"
-  username             = "debezium"
-  password             = random_password.db_password.result # use secrets manager or ssm in prod
-  port                 = 3306
-  publicly_accessible  = true
-  db_subnet_group_name = aws_db_subnet_group.mysql.name
-  # vpc_security_group_ids = [aws_security_group.mysql.id]
+  identifier             = "debezium-mysql-db"
+  engine                 = "mysql"
+  instance_class         = "db.t3.micro"
+  allocated_storage      = 20
+  db_name                = "mydb"
+  username               = "debezium"
+  password               = random_password.db_password.result # use secrets manager or ssm in prod
+  port                   = 3306
+  publicly_accessible    = true
+  db_subnet_group_name   = aws_db_subnet_group.mysql.name
   vpc_security_group_ids = [module.mysql_security_group.id]
   skip_final_snapshot    = true
 
