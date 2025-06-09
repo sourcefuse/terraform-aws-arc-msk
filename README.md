@@ -1,9 +1,18 @@
-# AWS MSK Terraform Module
+![Module Structure](./static/msk.png)
 
-This Terraform module creates an Amazon Managed Streaming for Apache Kafka (MSK) cluster with configurable options for encryption, authentication, monitoring, and logging.
+# [terraform-aws-arc-msk](https://github.com/sourcefuse/terraform-aws-arc-msk)
+
+<a href="https://github.com/sourcefuse/terraform-aws-arc-msk/releases/latest"><img src="https://img.shields.io/github/release/sourcefuse/terraform-aws-arc-msk.svg?style=for-the-badge" alt="Latest Release"/></a> <a href="https://github.com/sourcefuse/terraform-aws-arc-msk/commits"><img src="https://img.shields.io/github/last-commit/sourcefuse/terraform-aws-arc-msk.svg?style=for-the-badge" alt="Last Updated"/></a> ![Terraform](https://img.shields.io/badge/terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white) ![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white)
+
+[![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=sourcefuse_terraform-aws-arc-msk&token=ad50d88e1098864c2906ef63bcfb9974003e670d)](https://sonarcloud.io/summary/new_code?id=sourcefuse_terraform-aws-arc-msk)
+
+[![Known Vulnerabilities](https://github.com/sourcefuse/terraform-aws-arc-msk/actions/workflows/snyk.yaml/badge.svg)](https://github.com/sourcefuse/terraform-aws-arc-msk/actions/workflows/snyk.yaml)
+
+## Overview
+
+SourceFuse AWS Reference Architecture (ARC) Terraform module for managing the s3 module.
 
 ## Features
-
 - Create an MSK cluster with customizable broker configuration
 - Configure encryption in transit and at rest
 - Set up authentication methods (SASL/SCRAM, IAM, TLS)
@@ -11,29 +20,41 @@ This Terraform module creates an Amazon Managed Streaming for Apache Kafka (MSK)
 - Configure logging to CloudWatch, Kinesis Firehose, or S3
 - Create and manage MSK configurations
 - Associate SCRAM secrets for authentication
+- Deploy MSK Connectors to stream data in and out of Kafka
+- Create and manage custom plugins stored in S3
+- Configure MSK Connect worker configuration via properties file
+- Deploy MSK Connect connectors with support for autoscaling or provisioned mode
+
+## Introduction
+
+This Terraform module provisions a fully configurable Amazon MSK (Managed Streaming for Apache Kafka) cluster with support for encryption, authentication (IAM, TLS, SASL/SCRAM), monitoring, and logging. It also enables deployment of MSK Connect components including custom plugins, worker configurations, and connectors with autoscaling or provisioned capacity, along with log delivery to CloudWatch, Firehose, or S3—empowering end-to-end Kafka data streaming pipelines.
 
 ## Usage
 
-### Basic Usage with Auto-Discovery
+To see a full example, check out the [main.tf](https://github.com/sourcefuse/terraform-aws-arc-msk/blob/feature/fix-docs/examples/simple/main.tf) file in the example folder.  
 
+### Basic Usage
 ```hcl
 module "msk" {
-  source = "../.."
-
+  source                 = "../.."
+  create_msk_cluster     = true
   cluster_name           = "example-msk-cluster"
   kafka_version          = "3.6.0"
   number_of_broker_nodes = 2
   broker_instance_type   = "kafka.m5.large"
-  client_subnets         = data.aws_subnets.private.ids
+  client_subnets         = data.aws_subnets.public.ids
   security_groups        = [module.security_group.id]
-    broker_storage = {
-    volume_size                    = 150
+  broker_storage = {
+    volume_size = 150
   }
 
+  client_authentication = {
+    sasl_scram_enabled           = true # When set to true, this will create secrets in AWS Secrets Manager.
+    allow_unauthenticated_access = false
+  }
   # Enable CloudWatch logging
   logging_info = {
-    cloudwatch_logs_enabled  = true
-    cloudwatch_log_group     = aws_cloudwatch_log_group.msk_broker_logs.name
+    cloudwatch_logs_enabled = true
   }
 
   # Enable monitoring
@@ -42,172 +63,10 @@ module "msk" {
     node_exporter_enabled = true
   }
 
-  tags = {
-    Environment = "example"
-    Project     = "MSK"
-  }
+  tags = module.tags.tags
 }
 ```
 
-### Usage with Explicit VPC and Subnets
-
-```hcl
-module "msk" {
-  source = "path/to/terraform-aws-arc-msk"
-
-  cluster_name           = "example-msk-cluster"
-  kafka_version          = "3.4.0"
-  number_of_broker_nodes = 3
-  broker_instance_type   = "kafka.m5.large"
-  vpc_id                 = "vpc-12345678"
-  client_subnets         = ["subnet-12345678", "subnet-87654321", "subnet-10293847"]
-  security_groups        = [module.security_group.id]
-  ebs_volume_size        = 1000
-
-  # Enable CloudWatch logging
-  cloudwatch_logs_enabled = true
-  cloudwatch_log_group    = "msk-broker-logs"
-
-  # Enable monitoring
-  jmx_exporter_enabled  = true
-  node_exporter_enabled = true
-
-  tags = {
-    Environment = "production"
-    Project     = "example"
-  }
-}
-```
-
-## Examples
-
-### Simple Example with Auto-Discovery
-
-```hcl
-module "security_group" {
-  source = "path/to/terraform-aws-arc-security-group"
-
-  name        = "arc-dev-msk-sg"
-  description = "Security group for MSK cluster"
-  vpc_id      = data.aws_vpc.vpc.id
-
-  ingress_rules = [
-    {
-      description = "Allow Kafka plaintext"
-      cidr_block  = data.aws_vpc.vpc.cidr_block
-      from_port   = 9092
-      to_port     = 9092
-      ip_protocol = "tcp"
-    },
-    {
-      description = "Allow Kafka TLS"
-      cidr_block  = data.aws_vpc.vpc.cidr_block
-      from_port   = 9094
-      to_port     = 9094
-      ip_protocol = "tcp"
-    }
-  ]
-
-  egress_rules = [
-    {
-      description = "Allow all outbound"
-      cidr_block  = "0.0.0.0/0"
-      from_port   = 0
-      to_port     = 0
-      ip_protocol = "-1"
-    }
-  ]
-}
-
-module "msk" {
-  source = "path/to/terraform-aws-arc-msk"
-
-  cluster_name           = "arc-dev-msk"
-  kafka_version          = "3.4.0"
-  number_of_broker_nodes = 3
-  broker_instance_type   = "kafka.t3.small"
-  security_groups        = [module.security_group.id]
-
-  # These will be auto-detected from VPC tags
-  namespace   = "arc"
-  environment = "dev"
-
-  # Enable CloudWatch logging
-  cloudwatch_logs_enabled = true
-  cloudwatch_log_group    = "arc-dev-msk-logs"
-
-  tags = {
-    Environment = "dev"
-    Namespace   = "arc"
-  }
-}
-```
-
-### MSK Cluster with Custom Configuration
-
-```hcl
-module "msk" {
-  source = "path/to/terraform-aws-arc-msk"
-
-  cluster_name           = "example-msk-cluster"
-  kafka_version          = "3.4.0"
-  number_of_broker_nodes = 3
-  broker_instance_type   = "kafka.m5.large"
-  vpc_id                 = "vpc-12345678"
-  client_subnets         = ["subnet-12345678", "subnet-87654321", "subnet-10293847"]
-  security_groups        = [module.security_group.id]
-  ebs_volume_size        = 1000
-
-  # Create a custom configuration
-  create_configuration     = true
-  configuration_name       = "example-msk-config"
-  configuration_description = "Example MSK configuration"
-  server_properties        = <<EOF
-auto.create.topics.enable=true
-default.replication.factor=3
-min.insync.replicas=2
-num.io.threads=8
-num.network.threads=5
-num.partitions=1
-num.replica.fetchers=2
-replica.lag.time.max.ms=30000
-socket.receive.buffer.bytes=102400
-socket.request.max.bytes=104857600
-socket.send.buffer.bytes=102400
-unclean.leader.election.enable=true
-zookeeper.session.timeout.ms=18000
-EOF
-
-  tags = {
-    Environment = "production"
-  }
-}
-```
-
-### MSK Cluster with SASL/SCRAM Authentication
-
-```hcl
-module "msk" {
-  source = "path/to/terraform-aws-arc-msk"
-
-  cluster_name           = "example-msk-cluster"
-  kafka_version          = "3.4.0"
-  number_of_broker_nodes = 3
-  broker_instance_type   = "kafka.m5.large"
-  client_subnets         = ["subnet-12345678", "subnet-87654321", "subnet-10293847"]
-  security_groups        = [module.security_group.id]
-  ebs_volume_size        = 1000
-
-  # Enable SASL/SCRAM authentication
-  sasl_scram_enabled                     = true
-  create_scram_secret_association        = true
-  scram_secret_association_secret_arn_list = ["arn:aws:secretsmanager:us-west-2:123456789012:secret:AmazonMSK_example"]
-
-  tags = {
-    Environment = "production"
-  }
-}
-```
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Requirements
 

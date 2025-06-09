@@ -12,6 +12,10 @@ module "tags" {
     RepoName = "terraform-aws-msk"
   }
 }
+
+################################################################################
+## MSL Cluster
+################################################################################
 module "msk" {
   source                 = "../.."
   create_msk_cluster     = true
@@ -43,6 +47,7 @@ module "msk" {
   tags = module.tags.tags
 }
 
+# Security Group
 module "security_group" {
   source  = "sourcefuse/arc-security-group/aws"
   version = "0.0.2"
