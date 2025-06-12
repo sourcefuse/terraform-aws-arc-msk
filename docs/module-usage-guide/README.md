@@ -66,7 +66,7 @@ module "msk" {
 
 Prerequisites:
 
-Before running the Terraform example in example/msk-connect, ensure the following components are pre-configured in your AWS environment:
+Before running the Terraform example in  [example/msk-connect](https://github.com/sourcefuse/terraform-aws-arc-msk/blob/feature/fix-docs/examples/msk-connect/main.tf), ensure the following components are pre-configured in your AWS environment:
 Aurora PostgreSQL Setup
   - An Aurora PostgreSQL cluster is already created.
   - A database named myapp is created within the cluster.
