@@ -18,3 +18,12 @@ variable "namespace" {
   default     = "arc"
   description = "Namespace, which could be your organization name or abbreviation, e.g. 'arc'"
 }
+
+variable "zip_files" {
+  type = list(string)
+  default = [
+    "confluentinc-kafka-connect-s3-10.6.6.zip",
+    "confluentinc-kafka-connect-jdbc-10.6.6.zip",
+
+  ]
+}

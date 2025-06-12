@@ -30,7 +30,8 @@ module "msk" {
   }
 
   client_authentication = {
-    sasl_scram_enabled           = true # When set to true, this will create secrets in AWS Secrets Manager.
+    sasl_iam_enabled             = true
+    sasl_scram_enabled           = false # When set to true, this will create secrets in AWS Secrets Manager.
     allow_unauthenticated_access = false
   }
   # Enable CloudWatch logging
@@ -82,6 +83,13 @@ module "security_group" {
       cidr_block  = data.aws_vpc.default.cidr_block
       from_port   = 2181
       to_port     = 2182
+      ip_protocol = "tcp"
+    },
+    {
+      description = "Allow DB"
+      cidr_block  = data.aws_vpc.default.cidr_block
+      from_port   = 5432
+      to_port     = 5432
       ip_protocol = "tcp"
     }
   ]

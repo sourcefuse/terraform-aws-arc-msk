@@ -1,74 +1,61 @@
 ################################################################################
 ## IAM Policy
-################################################################################
-resource "aws_iam_policy" "msk_connect_policy" {
-  name        = "MSKConnectPolicy"
-  description = "IAM policy for MSK Connect"
+###############################################################################
+resource "aws_iam_policy" "msk_source_destination_policy" {
+  name        = "${var.environment}_msk_rds_s3_policy"
+  description = "IAM policy for MSK Connect source connector"
 
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
 
-      # Kafka Connect: cluster-wide access for bootstrap and group mgmt
+      # Allow connector to connect to and describe the MSK cluster
       {
         Effect = "Allow",
         Action = [
           "kafka-cluster:Connect",
-          "kafka-cluster:DescribeCluster",
-          "kafka-cluster:DescribeGroup",
-          "kafka-cluster:GetBootstrapBrokers",
-          "kafka-cluster:ReadData",
-          "kafka-cluster:WriteData",
-          "kafka-cluster:AlterGroup",
-          "kafka-cluster:DescribeTopic",
-          "kafka-cluster:CreateTopic"
+          "kafka-cluster:DescribeCluster"
         ],
-        Resource = "*"
+        Resource = module.msk.cluster_arn
       },
 
-      # Explicit access to specific cluster and topics (may be required for full control)
+      # Read and describe the topic
       {
         Effect = "Allow",
         Action = [
-          "kafka-cluster:Connect",
-          "kafka-cluster:DescribeCluster",
-          "kafka-cluster:DescribeGroup",
-          "kafka-cluster:GetBootstrapBrokers",
           "kafka-cluster:ReadData",
-          "kafka-cluster:WriteData",
-          "kafka-cluster:AlterGroup",
-          "kafka-cluster:DescribeTopic",
-          "kafka-cluster:CreateTopic"
+          "kafka-cluster:DescribeTopic"
         ],
         Resource = [
-          module.msk.cluster_arn,
-          "arn:aws:kafka:us-east-1:${data.aws_caller_identity.current.id}:topic/*"
+          "arn:aws:kafka:${var.region}:${data.aws_caller_identity.current.id}:topic/*",
+          module.msk.cluster_arn
         ]
       },
 
-      # S3 access (for connector JAR/plugin)
+      # Allow consumer group operations (needed for tracking offset)
       {
         Effect = "Allow",
         Action = [
+          "kafka-cluster:AlterGroup",
+          "kafka-cluster:DescribeGroup"
+        ],
+        Resource = ["arn:aws:kafka:${var.region}:${data.aws_caller_identity.current.id}:group/*",
+          module.msk.cluster_arn
+        ]
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "s3:PutObject",
+          "s3:GetBucketLocation",
+          "s3:ListBucket",
           "s3:GetObject",
-          "s3:ListBucket"
+          "s3:DeleteObject"
         ],
         Resource = [
           module.s3.bucket_arn,
-          "${module.s3.bucket_arn}/*",
-
+          "${module.s3.bucket_arn}/*"
         ]
-      },
-
-      # CloudWatch Logs for monitoring/debugging
-      {
-        Effect = "Allow",
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ],
-        Resource = "*"
       }
     ]
   })

@@ -13,12 +13,9 @@ module "tags" {
   }
 }
 
-
-
 ################################################################################
-## MSK Connect
+## MSK Connector Source - RDS
 ################################################################################
-
 module "msk_connect" {
   source = "../.."
 
@@ -26,51 +23,47 @@ module "msk_connect" {
   create_msk_components = true
 
   create_custom_plugin        = true
-  create_worker_configuration = true
+  create_worker_configuration = false
   create_connector            = true
 
   # Custom Plugin
-  plugin_name          = "my-custom-plugin"
+  plugin_name          = "jdbc-pg-plugin"
   plugin_content_type  = "ZIP" # or "JAR" or "ZIP"
   plugin_description   = "Custom plugin for MSK Connect"
   plugin_s3_bucket_arn = module.s3.bucket_arn
-  plugin_s3_file_key   = "debezium-mysql-2.3.4.zip"
-
-  # Worker Configuration
-  worker_config_name             = "my-worker-config"
-  worker_properties_file_content = <<-EOT
-  key.converter=org.apache.kafka.connect.json.JsonConverter
-  value.converter=org.apache.kafka.connect.json.JsonConverter
-  key.converter.schemas.enable=false
-  value.converter.schemas.enable=false
-EOT
-  worker_config_description      = "Worker config for MSK Connect"
+  plugin_s3_file_key   = "confluentinc-kafka-connect-jdbc-10.6.6.zip"
 
   # Connector
-  connector_name       = "my-msk-connector"
+  connector_name       = "msk-pg-connector"
   kafkaconnect_version = "2.7.1"
 
   connector_configuration = {
-    "connector.class"        = "io.debezium.connector.mysql.MySqlConnector"
-    "tasks.max"              = "1"
-    "database.hostname"      = aws_db_instance.mysql.address
-    "database.port"          = aws_db_instance.mysql.port
-    "database.user"          = aws_db_instance.mysql.username
-    "database.password"      = aws_db_instance.mysql.password
-    "database.server.id"     = "184054"
-    "database.server.name"   = "mysql"
-    "database.include.list"  = "inventory"
-    "include.schema.changes" = "true"
-
-    # Required in Debezium 2.x+
-    "schema.history.internal.kafka.bootstrap.servers" = module.msk.bootstrap_brokers_sasl_iam
-    "schema.history.internal.kafka.topic"             = "schema-changes.inventory"
-
-    # Optional, for secured MSK
-    "schema.history.internal.producer.security.protocol" = "SSL"
-    "schema.history.internal.consumer.security.protocol" = "SSL"
-
-    "topic.prefix" = "test"
+    "connector.class" : "io.confluent.connect.jdbc.JdbcSourceConnector",
+    "incrementing.column.name" : "user_id",
+    "topic.creation.default.partitions" : "1",
+    "connection.password" : data.aws_ssm_parameter.db_password.value,
+    "tasks.max" : "1",
+    "table.whitelist" : "public.users",
+    "mode" : "incrementing",
+    "topic.creation.cdc.cleanup.policy" : "delete",
+    "topic.prefix" : "cdc_aurora_",
+    "poll.interval.ms" : "40000",
+    "topic.creation.default.replication.factor" : "2",
+    "value.converter" : "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter" : "org.apache.kafka.connect.storage.StringConverter",
+    "topic.creation.cdc.retention.ms" : "2592000000",
+    "topic.creation.cdc.replication.factor" : "2",
+    "topic.creation.default.compression.type" : "snappy",
+    "topic.creation.default.cleanup.policy" : "delete",
+    "topic.creation.cdc.compression.type" : "snappy",
+    "topic.creation.default.retention.ms" : "2592000000",
+    "topic.creation.groups" : "cdc",
+    "connection.user" : data.aws_ssm_parameter.db_username.value,
+    "name" : "msk-pg-connector",
+    "value.converter.schemas.enable" : "false",
+    "topic.creation.cdc.partitions" : "1",
+    "connection.url" : "jdbc:postgresql://${data.aws_ssm_parameter.db_endpoint.value}:5432/myapp",
+    "topic.creation.cdc.include" : "cdc_aurora_.*"
   }
 
   # Capacity
@@ -92,19 +85,11 @@ EOT
 
   # Log Delivery
   log_delivery_cloudwatch_enabled = true
-  # log_delivery_cloudwatch_log_group = "/aws/msk/connect"
-
-  log_delivery_firehose_enabled         = false
-  log_delivery_firehose_delivery_stream = ""
-
-  log_delivery_s3_enabled = true
-  log_delivery_s3_bucket  = module.s3.bucket_id
-  log_delivery_s3_prefix  = "logs-connect/"
 
   # IAM Policy ARN
 
   msk_connector_policy_arns = {
-    "custom_policy" = aws_iam_policy.msk_connect_policy.arn
+    "custom_policy" = aws_iam_policy.msk_source_destination_policy.arn
     "cloudwatch"    = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
   }
 
@@ -114,6 +99,85 @@ EOT
   depends_on = [aws_s3_object.this]
 }
 
+
+################################################################################
+## MSK Connector Destination - S3
+################################################################################
+
+module "msk_s3_sink" {
+  source = "../.."
+
+  # Flag to control creation
+  create_msk_components = true
+
+  create_custom_plugin        = true
+  create_worker_configuration = false
+  create_connector            = true
+
+  # Custom Plugin
+  plugin_name          = "s3-sink-plugin"
+  plugin_content_type  = "ZIP" # or "JAR" or "ZIP"
+  plugin_description   = "Custom plugin for MSK Connect"
+  plugin_s3_bucket_arn = module.s3.bucket_arn
+  plugin_s3_file_key   = "confluentinc-kafka-connect-s3-10.6.6.zip"
+
+
+  # Connector
+  connector_name       = "msk-s3-sink-connector"
+  kafkaconnect_version = "2.7.1"
+
+  connector_configuration = {
+    "connector.class" : "io.confluent.connect.s3.S3SinkConnector",
+    "errors.log.include.messages" : "true",
+    "behavior.on.null.values" : "ignore",
+    "s3.region" : "us-east-1",
+    "flush.size" : "1",
+    "schema.compatibility" : "NONE",
+    "topics" : "cdc_aurora_users",
+    "tasks.max" : "1",
+    "format.class" : "io.confluent.connect.s3.format.json.JsonFormat",
+    "partitioner.class" : "io.confluent.connect.storage.partitioner.DefaultPartitioner",
+    "errors.tolerance" : "all",
+    "value.converter.schemas.enable" : "false",
+    "value.converter" : "org.apache.kafka.connect.json.JsonConverter",
+    "storage.class" : "io.confluent.connect.s3.storage.S3Storage",
+    "errors.log.enable" : "true",
+    "key.converter" : "org.apache.kafka.connect.storage.StringConverter",
+    "s3.bucket.name" : module.s3.bucket_id
+  }
+
+  # Capacity
+  capacity_mode                        = "autoscaling"
+  autoscaling_mcu_count                = 1
+  autoscaling_min_worker_count         = 1
+  autoscaling_max_worker_count         = 5
+  scale_in_cpu_utilization_percentage  = 20
+  scale_out_cpu_utilization_percentage = 75
+
+  # Networking
+  bootstrap_servers = module.msk.bootstrap_brokers_sasl_iam
+  security_groups   = [module.security_group.id]
+  subnets           = data.aws_subnets.public.ids
+
+  # Authentication and Encryption
+  authentication_type = "IAM" # or "NONE"
+  encryption_type     = "TLS" # or "PLAINTEXT"
+
+  # Log Delivery
+  log_delivery_cloudwatch_enabled = true
+
+  # IAM Policy ARN
+  msk_connector_policy_arns = {
+    "custom_policy" = aws_iam_policy.msk_source_destination_policy.arn
+    "cloudwatch"    = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+  }
+
+  # Tags
+  tags = module.tags.tags
+
+  depends_on = [aws_s3_object.this, module.msk_connect]
+}
+
 ################################################################################
 ## MSK Cluster
 ################################################################################
@@ -121,7 +185,7 @@ module "msk" {
   source = "../.."
 
   create_msk_cluster     = true
-  cluster_name           = "${var.namespace}-${var.environment}-msk"
+  cluster_name           = "basic-${var.namespace}-${var.environment}-msk"
   kafka_version          = "3.4.0"
   number_of_broker_nodes = 2
   broker_instance_type   = "kafka.t3.small"
@@ -135,7 +199,7 @@ module "msk" {
   # Authentication settings
   client_authentication = {
     sasl_iam_enabled             = true
-    sasl_scram_enabled           = true # if it is set to true - this should create Secrets in Secrets Manager
+    sasl_scram_enabled           = false # if it is set to true - this should create Secrets in Secrets Manager
     allow_unauthenticated_access = false
   }
 
@@ -152,13 +216,21 @@ module "msk" {
   # Create a custom configuration
   configuration_info = {
     create_configuration      = true
-    configuration_name        = "my-custom-msk-config"
+    configuration_name        = "basic-custom-msk-config"
     configuration_description = "Custom configuration for Kafka cluster"
     server_properties         = <<EOT
 auto.create.topics.enable=true
 default.replication.factor=3
 min.insync.replicas=2
-num.partitions=1
+num.io.threads=8
+num.network.threads=5
+num.partitions=20
+num.replica.fetchers=2
+replica.lag.time.max.ms=30000
+socket.receive.buffer.bytes=102400
+socket.request.max.bytes=104857600
+socket.send.buffer.bytes=102400
+unclean.leader.election.enable=false
 EOT
   }
 
@@ -173,7 +245,7 @@ module "security_group" {
   source  = "sourcefuse/arc-security-group/aws"
   version = "0.0.2"
 
-  name   = "msk-sg-basic"
+  name   = "kafka-sg-basic"
   vpc_id = data.aws_vpc.default.id
 
   ingress_rules = [
@@ -205,38 +277,11 @@ module "security_group" {
       to_port     = 3306
       ip_protocol = "tcp"
     },
-  ]
-
-  egress_rules = [
     {
-      description = "Allow all outbound traffic"
-      cidr_block  = "0.0.0.0/0"
-      from_port   = -1
-      ip_protocol = "-1"
-      to_port     = -1
-    }
-  ]
-
-  tags = module.tags.tags
-}
-
-
-###############################################################################
-# DB
-###############################################################################
-module "mysql_security_group" {
-  source  = "sourcefuse/arc-security-group/aws"
-  version = "0.0.2"
-
-  name   = "mysql"
-  vpc_id = data.aws_vpc.default.id
-
-  ingress_rules = [
-    {
-      description = "MYSQL"
+      description = "postgresql"
       cidr_block  = data.aws_vpc.default.cidr_block
-      from_port   = 3306
-      to_port     = 3306
+      from_port   = 5432
+      to_port     = 5432
       ip_protocol = "tcp"
     },
   ]
@@ -254,61 +299,26 @@ module "mysql_security_group" {
   tags = module.tags.tags
 }
 
-resource "random_password" "db_password" {
-  length           = 16
-  special          = true
-  override_special = "!#$%^&*()-_=+[]{}|:,.<>?~" # Only allowed special characters
-}
 
-resource "aws_db_subnet_group" "mysql" {
-  name       = "mysql-subnet-group"
-  subnet_ids = data.aws_subnets.public.ids
-
-  tags = {
-    Name = "MySQLSubnetGroup"
-  }
-}
-
-resource "aws_db_instance" "mysql" {
-  identifier             = "debezium-mysql-db"
-  engine                 = "mysql"
-  instance_class         = "db.t3.micro"
-  allocated_storage      = 20
-  db_name                = "mydb"
-  username               = "debezium"
-  password               = random_password.db_password.result # use secrets manager or ssm in prod
-  port                   = 3306
-  publicly_accessible    = true
-  db_subnet_group_name   = aws_db_subnet_group.mysql.name
-  vpc_security_group_ids = [module.mysql_security_group.id]
-  skip_final_snapshot    = true
-
-  tags = module.tags.tags
-}
-
-
-######################################################
-# S3
-######################################################
-
+################################################################################
+## S3
+################################################################################
 module "s3" {
   source  = "sourcefuse/arc-s3/aws"
   version = "v0.0.4"
 
-  name          = "${var.namespace}-${var.environment}-db-s3-sync-connect-bucket"
+  name          = "${var.namespace}-${var.environment}-msk-s3-db-sink-bucket"
   acl           = "private"
   force_destroy = true
   tags          = module.tags.tags
 }
 
+# S3 Object Upload
 resource "aws_s3_object" "this" {
+  for_each = { for file in var.zip_files : file => file }
 
   bucket = module.s3.bucket_id
-  key    = "debezium-mysql-2.3.4.zip"
-  source = "${path.module}/debezium-mysql-2.3.4.zip"
+  key    = each.key
+  source = "${path.module}/${each.value}"
   acl    = "private"
-  # Force update by adding a dynamic tag or timestamp
-  metadata = {
-    "timestamp" = timestamp() # This will force Terraform to detect a change
-  }
 }

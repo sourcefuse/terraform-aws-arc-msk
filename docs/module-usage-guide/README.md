@@ -9,6 +9,7 @@ This document provides guidelines and instructions for users looking to implemen
 ### Module Overview
 
 The Terraform AWS ARC MSK module provides a secure and modular foundation for deploying Amazon MSK (Managed Streaming for Apache Kafka) clusters on AWS. It supports both standard and serverless MSK clusters with comprehensive configuration options for encryption, authentication, monitoring, and logging.
+In addition, this module supports configuring MSK Connect connectors to integrate data sources like Amazon Aurora PostgreSQL and destinations like Amazon S3, enabling real-time data streaming pipelines using custom Kafka Connect plugins.
 
 ### Prerequisites
 
@@ -58,6 +59,94 @@ module "msk" {
   tags = module.tags.tags
 }
 ```
+
+### MSK Connect Data Sink: Aurora PostgreSQL to Amazon S3
+
+#### This Terraform example provisions MSK Connect components that enable data ingestion from an Amazon Aurora PostgreSQL database into Amazon S3, using Kafka Connect and Confluent plugins.
+
+Prerequisites:
+
+Before running the Terraform example in example/msk-connect, ensure the following components are pre-configured in your AWS environment:
+Aurora PostgreSQL Setup
+  - An Aurora PostgreSQL cluster is already created.
+  - A database named myapp is created within the cluster.
+  - A sample table named users is present under schema public with sample data inserted.
+
+VPC Configuration
+  - A VPC Endpoint for S3 (Gateway type) is created to allow private communication between MSK Connect and S3.
+
+Plugins Downloaded and Uploaded to S3
+
+Download the required Kafka Connect plugins and upload them to the appropriate S3 bucket:
+JDBC Source Plugin
+  - Plugin: confluentinc-kafka-connect-jdbc-10.6.6.zip
+  - Download: https://www.confluent.io/hub/confluentinc/kafka-connect-jdbc
+
+S3 Sink Plugin
+  - Plugin: confluentinc-kafka-connect-s3-10.6.6.zip
+  - Download: https://www.confluent.io/hub/confluentinc/kafka-connect-s3
+
+## Module Overview
+
+Once the above prerequisites are met, you can deploy the Terraform example to configure the data pipeline using:
+
+```hcl
+module "msk_connect" {
+  source = "../.."
+
+  # Enables MSK Connect components and plugins for source
+  create_msk_components        = true
+  create_custom_plugin         = true
+  create_worker_configuration  = false
+  create_connector             = true
+
+  # Plugin and connector configurations
+  plugin_name          = "jdbc-pg-plugin"
+  plugin_content_type  = "ZIP"
+  plugin_description   = "Custom plugin for MSK Connect"
+  plugin_s3_bucket_arn = module.s3.bucket_arn
+  plugin_s3_file_key   = "confluentinc-kafka-connect-jdbc-10.6.6.zip"
+
+  connector_name       = "msk-pg-connector"
+  kafkaconnect_version = "2.7.1"
+
+  connector_configuration = {
+    "connector.class" : "io.confluent.connect.jdbc.JdbcSourceConnector",
+    ...
+    "connection.url" : "jdbc:postgresql://${data.aws_ssm_parameter.db_endpoint.value}:5432/myapp"
+  }
+
+  ...
+}
+
+module "msk_s3_sink" {
+  source = "../.."
+
+  # Enables MSK Connect components and plugins for destination
+  create_msk_components        = true
+  create_custom_plugin         = true
+  create_worker_configuration  = false
+  create_connector             = true
+
+  plugin_name          = "s3-sink-plugin"
+  plugin_content_type  = "ZIP"
+  plugin_description   = "Custom plugin for MSK Connect"
+  plugin_s3_bucket_arn = module.s3.bucket_arn
+  plugin_s3_file_key   = "confluentinc-kafka-connect-s3-10.6.6.zip"
+
+  connector_name       = "msk-s3-sink-connector"
+  kafkaconnect_version = "2.7.1"
+
+  connector_configuration = {
+    "connector.class" : "io.confluent.connect.s3.S3SinkConnector",
+    ...
+    "s3.bucket.name" : module.s3.bucket_id
+  }
+
+  ...
+}
+```
+These modules will create MSK Connect plugins and connectors, enabling a seamless stream of data from PostgreSQL (public.users table) to S3 (cdc_aurora_users topic)
 
 Refer to the [Terraform Registry](https://registry.terraform.io/modules/sourcefuse/arc-msk/aws/latest) for the latest version.
 
