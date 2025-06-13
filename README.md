@@ -88,13 +88,12 @@ VPC Configuration
 Plugins Downloaded and Uploaded to S3
 
 Download the required Kafka Connect plugins and upload them to the appropriate S3 bucket:
+
 JDBC Source Plugin
-  - Plugin: confluentinc-kafka-connect-jdbc-10.6.6.zip
-  - Download: https://www.confluent.io/hub/confluentinc/kafka-connect-jdbc
+  - Plugin: [confluentinc-kafka-connect-jdbc-10.6.6.zip](https://www.confluent.io/hub/confluentinc/kafka-connect-jdbc)
 
 S3 Sink Plugin
-  - Plugin: confluentinc-kafka-connect-s3-10.6.6.zip
-  - Download: https://www.confluent.io/hub/confluentinc/kafka-connect-s3
+  - Plugin: [confluentinc-kafka-connect-s3-10.6.6.zip](https://www.confluent.io/hub/confluentinc/kafka-connect-s3)
 
 ## Module Overview
 
@@ -104,7 +103,8 @@ Once the above prerequisites are met, you can deploy the Terraform example to co
 # Source Connector
 
 module "msk_connect" {
-  source = "../.."
+  source      = "sourcefuse/arc-msk/aws"
+  version     = "0.0.1"
 
   # Enables MSK Connect components and plugins for source
   create_msk_components        = true
@@ -134,7 +134,8 @@ module "msk_connect" {
 # Sink Connector
 
 module "msk_s3_sink" {
-  source = "../.."
+  source      = "sourcefuse/arc-msk/aws"
+  version     = "0.0.1"
 
   # Enables MSK Connect components and plugins for destination
   create_msk_components        = true
