@@ -19,12 +19,13 @@ module "tags" {
 module "msk" {
   source = "../.."
 
-  create_msk_cluster     = true
+  # create_msk_cluster     = true
+  cluster_type           = "provisioned"
   cluster_name           = "complete-msk-cluster"
   kafka_version          = "3.6.0"
   number_of_broker_nodes = 2
   broker_instance_type   = "kafka.m5.large"
-  client_subnets         = data.aws_subnets.public.ids
+  subnet_ids             = data.aws_subnets.public.ids
   security_groups        = [module.security_group.id]
 
   #Enhanced Monitoring
@@ -40,7 +41,9 @@ module "msk" {
   client_broker_encryption = "TLS" #TLS_PLAINTEXT
   in_cluster_encryption    = true
 
-  create_kms_key = true
+  kms_config = {
+    create = true
+  }
 
   # Authentication settings
   client_authentication = {
@@ -68,13 +71,13 @@ module "msk" {
   }
 
   # Public Connectivity Settings
-  connectivity_info = {
+  connectivity_config = {
     public_access_enabled = true
-    public_access_type    = "DISABLED" # "DISABLED" #"SERVICE_PROVIDED_EIPS"
+    public_access_type    = "DISABLED"
   }
 
   # Logging Configuration
-  logging_info = {
+  logging_config = {
     cloudwatch_logs_enabled  = true
     firehose_logs_enabled    = false
     firehose_delivery_stream = null
@@ -84,9 +87,9 @@ module "msk" {
   }
 
   # Custom MSK Configuration
-  configuration_info = {
+  cluster_configuration = {
     create_configuration      = true
-    configuration_name        = "my-custom-msk-config"
+    configuration_name        = "complete-custom-msk-config"
     configuration_description = "Custom configuration for Kafka cluster"
     server_properties         = <<EOT
 auto.create.topics.enable=true
@@ -149,7 +152,7 @@ module "security_group" {
   source  = "sourcefuse/arc-security-group/aws"
   version = "0.0.2"
 
-  name   = "msk-sg-complete"
+  name   = "complete-msk-sg"
   vpc_id = data.aws_vpc.default.id
 
   ingress_rules = [
@@ -205,7 +208,7 @@ module "s3" {
   source  = "sourcefuse/arc-s3/aws"
   version = "v0.0.4"
 
-  name          = "${var.namespace}-${var.environment}-cluster-logs-bucket"
+  name          = "complete-${var.namespace}-${var.environment}-cluster-logs-bucket"
   acl           = "private"
   force_destroy = true
   tags          = module.tags.tags

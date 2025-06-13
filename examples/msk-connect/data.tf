@@ -20,9 +20,6 @@ data "aws_subnets" "public" {
   }
 }
 
-
-data "aws_caller_identity" "current" {}
-
 data "aws_ssm_parameter" "db_password" {
   name = "/${var.namespace}/${var.environment}/aurora/cluster_admin_db_password"
 }

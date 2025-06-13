@@ -38,15 +38,13 @@ module "msk_connect" {
 
   bootstrap_servers = var.bootstrap_servers
   security_groups   = var.security_groups
-  subnets           = var.subnets
+  subnets           = var.subnet_ids
 
   authentication_type = var.authentication_type
   encryption_type     = var.encryption_type
 
   log_delivery_cloudwatch_enabled = var.log_delivery_cloudwatch_enabled
   cloudwatch_retention_in_days    = var.cloudwatch_retention_in_days
-
-  # log_delivery_cloudwatch_log_group    = var.log_delivery_cloudwatch_log_group
 
   log_delivery_firehose_enabled         = var.log_delivery_firehose_enabled
   log_delivery_firehose_delivery_stream = var.log_delivery_firehose_delivery_stream

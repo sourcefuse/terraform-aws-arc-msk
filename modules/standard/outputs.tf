@@ -25,17 +25,17 @@ output "bootstrap_brokers_sasl_iam" {
 
 output "bootstrap_brokers_public_tls" {
   description = "A comma separated list of one or more DNS names (or IPs) and TLS port pairs for public access"
-  value       = var.connectivity_info.public_access_enabled ? aws_msk_cluster.this.bootstrap_brokers_public_tls : null
+  value       = var.connectivity_config.public_access_enabled ? aws_msk_cluster.this.bootstrap_brokers_public_tls : null
 }
 
 output "bootstrap_brokers_public_sasl_scram" {
   description = "A comma separated list of one or more DNS names (or IPs) and SASL SCRAM port pairs for public access"
-  value       = var.connectivity_info.public_access_enabled && var.client_authentication.sasl_scram_enabled ? aws_msk_cluster.this.bootstrap_brokers_public_sasl_scram : null
+  value       = var.connectivity_config.public_access_enabled && var.client_authentication.sasl_scram_enabled ? aws_msk_cluster.this.bootstrap_brokers_public_sasl_scram : null
 }
 
 output "bootstrap_brokers_public_sasl_iam" {
   description = "A comma separated list of one or more DNS names (or IPs) and SASL IAM port pairs for public access"
-  value       = var.connectivity_info.public_access_enabled && var.client_authentication.sasl_iam_enabled ? aws_msk_cluster.this.bootstrap_brokers_public_sasl_iam : null
+  value       = var.connectivity_config.public_access_enabled && var.client_authentication.sasl_iam_enabled ? aws_msk_cluster.this.bootstrap_brokers_public_sasl_iam : null
 }
 
 output "bootstrap_brokers_vpc_connectivity_tls" {
@@ -66,7 +66,7 @@ output "zookeeper_connect_string_tls" {
 
 output "configuration_latest_revision" {
   description = "Latest revision of the MSK configuration"
-  value       = var.configuration_info.create_configuration ? aws_msk_configuration.this[0].latest_revision : var.configuration_info.configuration_revision
+  value       = var.cluster_configuration.create_configuration ? aws_msk_configuration.this[0].latest_revision : var.cluster_configuration.configuration_revision
 }
 
 

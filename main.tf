@@ -3,22 +3,22 @@
 ##########################################################
 module "msk_cluster" {
   source = "./modules/standard"
-  count  = var.create_msk_cluster ? 1 : 0
+  count  = var.cluster_type == "provisioned" ? 1 : 0
 
   # Core settings
   cluster_name           = var.cluster_name
   kafka_version          = var.kafka_version
   number_of_broker_nodes = var.number_of_broker_nodes
   broker_instance_type   = var.broker_instance_type
-  client_subnets         = var.client_subnets
+  client_subnets         = var.subnet_ids
   security_groups        = var.security_groups
   az_distribution        = var.az_distribution
 
   # Encryption
   client_broker_encryption = var.client_broker_encryption
   in_cluster_encryption    = var.in_cluster_encryption
-  create_kms_key           = var.create_kms_key
-  kms_key_arn              = var.kms_key_arn
+  create_kms_key           = var.kms_config.create
+  kms_key_arn              = var.kms_config.key_arn
 
   # Storage
   storage_mode               = var.storage_mode
@@ -30,24 +30,25 @@ module "msk_cluster" {
   monitoring_info     = var.monitoring_info
 
   # Logging
-  logging_info = var.logging_info
+  logging_config = var.logging_config
 
   # Connectivity
-  connectivity_info                      = var.connectivity_info
+  connectivity_config                    = var.connectivity_config
   vpc_connectivity_client_authentication = var.vpc_connectivity_client_authentication
 
   # Client Authentication
   client_authentication = var.client_authentication
 
   # Configuration
-  configuration_info = var.configuration_info
+  cluster_configuration = var.cluster_configuration
 
   # Tags
   tags = var.tags
 
   # SCRAM user (optional)
-  scram_username = var.scram_username
-  scram_password = var.scram_password
+  scram_username = var.scram_credentials != null ? var.scram_credentials.username : null
+  scram_password = var.scram_credentials != null ? var.scram_credentials.password : null
+
 
   # VPC Connections
   vpc_connections = var.vpc_connections
@@ -64,7 +65,7 @@ module "msk_cluster" {
 
 module "msk_serverless" {
   source = "./modules/serverless"
-  count  = var.create_msk_serverless ? 1 : 0
+  count  = var.cluster_type == "serverless" ? 1 : 0
 
   cluster_name       = var.cluster_name
   subnet_ids         = var.subnet_ids

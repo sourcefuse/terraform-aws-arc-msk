@@ -18,12 +18,11 @@ module "tags" {
 ################################################################################
 
 module "msk_serverless" {
-  # source = "../../modules/serverless"
   source = "../.."
 
-  create_msk_serverless = true
+  cluster_type = "serverless"
 
-  cluster_name       = "serverless-msk-luster"
+  cluster_name       = "serverless-msk-cluster"
   subnet_ids         = data.aws_subnets.public.ids
   security_group_ids = [module.security_group.id]
   sasl_iam_enabled   = true
@@ -46,10 +45,7 @@ module "msk_serverless" {
     },
   ]
 
-  tags = {
-    Environment = "dev"
-    Project     = "arc"
-  }
+  tags = module.tags.tags
 }
 
 ################################################################################
@@ -103,8 +99,5 @@ module "security_group" {
     }
   ]
 
-  tags = {
-    Environment = "production"
-    Project     = "MSK"
-  }
+  tags = module.tags.tags
 }

@@ -2,17 +2,16 @@
 ## Variables
 ################################################################################
 
-variable "create_msk_cluster" {
-  description = "Flag to control creation of MSK Standard cluster"
-  type        = bool
-  default     = false
+variable "cluster_type" {
+  description = "Type of MSK cluster. Valid values: provisioned ,serverless or null"
+  type        = string
+  default     = null
+  validation {
+    condition     = var.cluster_type == null || contains(["provisioned", "serverless"], var.cluster_type)
+    error_message = "cluster_type must be either 'provisioned', 'serverless', or null."
+  }
 }
 
-variable "create_msk_serverless" {
-  description = "Flag to control creation of MSK serverless cluster"
-  type        = bool
-  default     = false
-}
 
 variable "storage_mode" {
   description = "Controls storage mode for supported storage tiers. Valid values are: LOCAL or TIERED"
@@ -32,7 +31,7 @@ variable "enhanced_monitoring" {
 variable "cluster_name" {
   description = "Name of the MSK cluster"
   type        = string
-  default     = ""
+  default     = null
 }
 
 variable "kafka_version" {
@@ -51,12 +50,6 @@ variable "broker_instance_type" {
   description = "Specify the instance type to use for the kafka brokers. e.g. kafka.m5.large"
   type        = string
   default     = "kafka.m5.large"
-}
-
-variable "client_subnets" {
-  description = "A list of subnets to connect to in client VPC. If not provided, private subnets will be fetched using tags"
-  type        = list(string)
-  default     = []
 }
 
 variable "security_groups" {
@@ -84,17 +77,15 @@ variable "in_cluster_encryption" {
   default     = true
 }
 
-variable "create_kms_key" {
-  description = "Whether to create a new KMS key"
-  type        = bool
-  default     = false
-}
-
-
-variable "kms_key_arn" {
-  description = "KMS Key ARN"
-  type        = string
-  default     = ""
+variable "kms_config" {
+  description = "Configuration for KMS key. If `create` is true, a new KMS key will be created. If false, provide an existing `key_arn`."
+  type = object({
+    create  = optional(bool, false)
+    key_arn = optional(string, null)
+  })
+  default = {
+    create = false
+  }
 }
 
 ################################################################################
@@ -111,9 +102,6 @@ variable "storage_autoscaling_config" {
   })
   default = {
     enabled = false
-    # max_capacity = 250
-    # role_arn     = ""
-    # target_value = 70
   }
 }
 
@@ -125,7 +113,7 @@ variable "client_authentication" {
   description = "Cluster-level client authentication options"
   type = object({
     sasl_scram_enabled             = optional(bool, false)
-    sasl_iam_enabled               = optional(bool, false)
+    sasl_iam_enabled               = optional(bool, true)
     tls_certificate_authority_arns = optional(list(string), [])
     allow_unauthenticated_access   = optional(bool, false)
   })
@@ -143,7 +131,7 @@ variable "vpc_connectivity_client_authentication" {
 }
 
 
-variable "connectivity_info" {
+variable "connectivity_config" {
   description = "Connectivity settings for public and VPC access"
   type = object({
     public_access_enabled = optional(bool, false)
@@ -153,7 +141,7 @@ variable "connectivity_info" {
 }
 
 
-variable "logging_info" {
+variable "logging_config" {
   description = "Logging settings"
   type = object({
     cloudwatch_logs_enabled           = optional(bool, false)
@@ -169,7 +157,7 @@ variable "logging_info" {
 }
 
 
-variable "configuration_info" {
+variable "cluster_configuration" {
   type = object({
     create_configuration      = bool
     configuration_name        = optional(string)
@@ -209,18 +197,21 @@ variable "broker_storage" {
 ##########################################################
 # Input Variable: SCRAM UserName Password
 ##########################################################
-variable "scram_username" {
-  description = "SCRAM username for MSK authentication (optional, will be generated if not provided)"
-  type        = string
-  default     = null
-  sensitive   = true
-}
 
-variable "scram_password" {
-  description = "SCRAM password for MSK authentication (optional, will be generated if not provided)"
-  type        = string
-  default     = null
-  sensitive   = true
+variable "scram_credentials" {
+  description = <<EOT
+SCRAM credentials for MSK authentication.
+- username: Optional. Will be generated if not provided.
+- password: Optional. Will be generated if not provided.
+EOT
+
+  type = object({
+    username = optional(string)
+    password = optional(string)
+  })
+
+  default   = null
+  sensitive = true
 }
 
 ##########################################################
@@ -405,12 +396,6 @@ variable "bootstrap_servers" {
   description = "Bootstrap servers for the Kafka cluster"
   type        = string
   default     = ""
-}
-
-variable "subnets" {
-  description = "List of subnet IDs"
-  type        = list(string)
-  default     = []
 }
 
 variable "authentication_type" {

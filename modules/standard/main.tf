@@ -29,17 +29,13 @@ resource "aws_msk_cluster" "this" {
 
     # Public access configuration - only included if public access is enabled
     dynamic "connectivity_info" {
-      # for_each = var.connectivity_info.public_access_enabled ? [1] : []
       for_each = local.enable_public_access
       content {
-        public_access { # TODO this is not working - Need to fix this - not getting changed
-          type = var.connectivity_info.public_access_type
+        public_access {
+          type = var.connectivity_config.public_access_type
         }
 
-        dynamic "vpc_connectivity" { # TODO this is not working - Need to fix this - not getting changed
-          # for_each = (
-          #   var.vpc_connectivity_client_authentication.sasl_scram_enabled ||
-          #   var.vpc_connectivity_client_authentication.sasl_iam_enabled ) ? [1] : []
+        dynamic "vpc_connectivity" {
           for_each = local.enable_vpc_connectivity_auth
           content {
             client_authentication {
@@ -70,7 +66,6 @@ resource "aws_msk_cluster" "this" {
 
   # Client authentication block - only included if any authentication method is enabled
   dynamic "client_authentication" {
-    #for_each = (var.client_authentication.sasl_scram_enabled || var.client_authentication.sasl_iam_enabled || length(var.client_authentication.tls_certificate_authority_arns) > 0 || var.client_authentication.allow_unauthenticated_access) ? [1] : []
     for_each = local.enable_client_authentication
     content {
       # SASL block - only included if SASL authentication is enabled
@@ -97,11 +92,10 @@ resource "aws_msk_cluster" "this" {
   # Configuration info block - only included if both ARN and revision are provided
   # or if we're creating a new configuration
   dynamic "configuration_info" {
-    #for_each = var.configuration_info.create_configuration ? [1] : (var.configuration_info.configuration_arn != null && var.configuration_info.configuration_revision != null ? [1] : [])
     for_each = local.enable_configuration_info
     content {
-      arn      = var.configuration_info.create_configuration ? aws_msk_configuration.this[0].arn : var.configuration_info.configuration_arn
-      revision = var.configuration_info.create_configuration ? aws_msk_configuration.this[0].latest_revision : var.configuration_info.configuration_revision
+      arn      = var.cluster_configuration.create_configuration ? aws_msk_configuration.this[0].arn : var.cluster_configuration.configuration_arn
+      revision = var.cluster_configuration.create_configuration ? aws_msk_configuration.this[0].latest_revision : var.cluster_configuration.configuration_revision
     }
   }
 
@@ -119,28 +113,26 @@ resource "aws_msk_cluster" "this" {
 
   # Logging info block - only included if any logging is enabled
   dynamic "logging_info" {
-    #for_each = (var.logging_info.cloudwatch_logs_enabled || var.logging_info.firehose_logs_enabled || var.logging_info.s3_logs_enabled) ? [1] : []
     for_each = local.enable_logging_info
     content {
       broker_logs {
         # CloudWatch logs - only configured if enabled
         cloudwatch_logs {
-          enabled = var.logging_info.cloudwatch_logs_enabled
-          # log_group = var.logging_info.cloudwatch_logs_enabled ? coalesce(var.logging_info.cloudwatch_log_group, local.default_log_group) : null
+          enabled   = var.logging_config.cloudwatch_logs_enabled
           log_group = local.log_group_name
         }
 
         # Firehose logs - only configured if enabled
         firehose {
-          enabled         = var.logging_info.firehose_logs_enabled
-          delivery_stream = var.logging_info.firehose_logs_enabled ? var.logging_info.firehose_delivery_stream : null
+          enabled         = var.logging_config.firehose_logs_enabled
+          delivery_stream = var.logging_config.firehose_logs_enabled ? var.logging_config.firehose_delivery_stream : null
         }
 
         # S3 logs - only configured if enabled
         s3 {
-          enabled = var.logging_info.s3_logs_enabled
-          bucket  = var.logging_info.s3_logs_enabled ? var.logging_info.s3_logs_bucket : null
-          prefix  = var.logging_info.s3_logs_enabled ? var.logging_info.s3_logs_prefix : null
+          enabled = var.logging_config.s3_logs_enabled
+          bucket  = var.logging_config.s3_logs_enabled ? var.logging_config.s3_logs_bucket : null
+          prefix  = var.logging_config.s3_logs_enabled ? var.logging_config.s3_logs_prefix : null
         }
       }
     }
@@ -160,12 +152,12 @@ resource "aws_msk_cluster" "this" {
 ## MSK Configuration
 ################################################################################
 resource "aws_msk_configuration" "this" {
-  count = var.configuration_info.create_configuration ? 1 : 0
+  count = var.cluster_configuration.create_configuration ? 1 : 0
 
-  name              = coalesce(var.configuration_info.configuration_name, local.default_config_name)
+  name              = coalesce(var.cluster_configuration.configuration_name, local.default_config_name)
   kafka_versions    = [var.kafka_version]
-  description       = var.configuration_info.configuration_description
-  server_properties = var.configuration_info.server_properties
+  description       = var.cluster_configuration.configuration_description
+  server_properties = var.cluster_configuration.server_properties
 
   lifecycle {
     create_before_destroy = true
@@ -203,7 +195,7 @@ resource "aws_msk_cluster_policy" "this" {
         Sid       = stmt.sid
         Effect    = stmt.effect
         Action    = stmt.actions
-        Principal = stmt.principal # This can now be any valid IAM principal structure
+        Principal = stmt.principal # This can be any valid IAM principal structure
         Resource  = length(stmt.resources) > 0 ? stmt.resources : [aws_msk_cluster.this.arn]
       }
     ]
@@ -216,10 +208,10 @@ resource "aws_msk_cluster_policy" "this" {
 ##########################################################
 
 resource "aws_cloudwatch_log_group" "this" {
-  count = var.logging_info.cloudwatch_logs_enabled && var.logging_info.cloudwatch_log_group == null ? 1 : 0
+  count = var.logging_config.cloudwatch_logs_enabled && var.logging_config.cloudwatch_log_group == null ? 1 : 0
 
   name              = "${var.cluster_name}-msk-log-group"
-  retention_in_days = coalesce(var.logging_info.cloudwatch_logs_retention_in_days, 7)
+  retention_in_days = coalesce(var.logging_config.cloudwatch_logs_retention_in_days, 7)
 
   tags = var.tags
 }

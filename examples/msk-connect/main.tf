@@ -77,7 +77,7 @@ module "msk_connect" {
   # Networking
   bootstrap_servers = module.msk.bootstrap_brokers_sasl_iam
   security_groups   = [module.security_group.id]
-  subnets           = data.aws_subnets.public.ids
+  subnet_ids        = data.aws_subnets.public.ids
 
   # Authentication and Encryption
   authentication_type = "IAM" # or "NONE"
@@ -157,7 +157,7 @@ module "msk_s3_sink" {
   # Networking
   bootstrap_servers = module.msk.bootstrap_brokers_sasl_iam
   security_groups   = [module.security_group.id]
-  subnets           = data.aws_subnets.public.ids
+  subnet_ids        = data.aws_subnets.public.ids
 
   # Authentication and Encryption
   authentication_type = "IAM" # or "NONE"
@@ -184,12 +184,13 @@ module "msk_s3_sink" {
 module "msk" {
   source = "../.."
 
-  create_msk_cluster     = true
+  # create_msk_cluster     = true
+  cluster_type           = "provisioned"
   cluster_name           = "basic-${var.namespace}-${var.environment}-msk"
   kafka_version          = "3.4.0"
   number_of_broker_nodes = 2
   broker_instance_type   = "kafka.t3.small"
-  client_subnets         = data.aws_subnets.public.ids
+  subnet_ids             = data.aws_subnets.public.ids
   security_groups        = [module.security_group.id]
 
 
@@ -204,7 +205,7 @@ module "msk" {
   }
 
   # Enable CloudWatch logging
-  logging_info = {
+  logging_config = {
     cloudwatch_logs_enabled = true
   }
 
@@ -214,7 +215,7 @@ module "msk" {
     node_exporter_enabled = true
   }
   # Create a custom configuration
-  configuration_info = {
+  cluster_configuration = {
     create_configuration      = true
     configuration_name        = "basic-custom-msk-config"
     configuration_description = "Custom configuration for Kafka cluster"
@@ -245,7 +246,7 @@ module "security_group" {
   source  = "sourcefuse/arc-security-group/aws"
   version = "0.0.2"
 
-  name   = "kafka-sg-basic"
+  name   = "basic-kafka-sg"
   vpc_id = data.aws_vpc.default.id
 
   ingress_rules = [

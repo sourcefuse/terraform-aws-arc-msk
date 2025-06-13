@@ -108,9 +108,6 @@ variable "storage_autoscaling_config" {
   })
   default = {
     enabled = false
-    # max_capacity = 250
-    # role_arn     = ""
-    # target_value = 70
   }
 }
 
@@ -140,7 +137,7 @@ variable "vpc_connectivity_client_authentication" {
 }
 
 
-variable "connectivity_info" {
+variable "connectivity_config" {
   description = "Connectivity settings for public and VPC access"
   type = object({
     public_access_enabled = optional(bool, false)
@@ -150,7 +147,7 @@ variable "connectivity_info" {
 }
 
 
-variable "logging_info" {
+variable "logging_config" {
   description = "Logging settings"
   type = object({
     cloudwatch_logs_enabled           = optional(bool, false)
@@ -166,7 +163,7 @@ variable "logging_info" {
 }
 
 
-variable "configuration_info" {
+variable "cluster_configuration" {
   type = object({
     create_configuration      = bool
     configuration_name        = optional(string)

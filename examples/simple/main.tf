@@ -18,12 +18,12 @@ module "tags" {
 ################################################################################
 module "msk" {
   source                 = "../.."
-  create_msk_cluster     = true
-  cluster_name           = "example-msk-cluster"
+  cluster_type           = "provisioned"
+  cluster_name           = "simple-msk-cluster"
   kafka_version          = "3.6.0"
   number_of_broker_nodes = 2
   broker_instance_type   = "kafka.m5.large"
-  client_subnets         = data.aws_subnets.public.ids
+  subnet_ids             = data.aws_subnets.public.ids
   security_groups        = [module.security_group.id]
   broker_storage = {
     volume_size = 150
@@ -35,7 +35,7 @@ module "msk" {
     allow_unauthenticated_access = false
   }
   # Enable CloudWatch logging
-  logging_info = {
+  logging_config = {
     cloudwatch_logs_enabled = true
   }
 
@@ -53,7 +53,7 @@ module "security_group" {
   source  = "sourcefuse/arc-security-group/aws"
   version = "0.0.2"
 
-  name   = "msk-sg-basic"
+  name   = "simple-msk-sg"
   vpc_id = data.aws_vpc.default.id
 
   ingress_rules = [

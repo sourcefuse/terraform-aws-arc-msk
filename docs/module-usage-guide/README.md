@@ -30,7 +30,7 @@ module "msk" {
   source  = "sourcefuse/arc-msk/aws"
   version = "0.0.1"
 
-  create_msk_cluster     = true
+  cluster_type           = "provisioned"
   cluster_name           = "example-msk-cluster"
   kafka_version          = "3.6.0"
   number_of_broker_nodes = 2
@@ -91,6 +91,8 @@ S3 Sink Plugin
 Once the above prerequisites are met, you can deploy the Terraform example to configure the data pipeline using:
 
 ```hcl
+# Source Connector
+
 module "msk_connect" {
   source = "../.."
 
@@ -118,6 +120,8 @@ module "msk_connect" {
 
   ...
 }
+
+# Sink Connector
 
 module "msk_s3_sink" {
   source = "../.."

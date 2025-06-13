@@ -1,4 +1,4 @@
-![Module Structure](./static/msk.png)
+![Module Structure](./static/terraform-aws-arc-msk.png)
 
 # [terraform-aws-arc-msk](https://github.com/sourcefuse/terraform-aws-arc-msk)
 
@@ -10,7 +10,7 @@
 
 ## Overview
 
-SourceFuse AWS Reference Architecture (ARC) Terraform module for managing the s3 module.
+SourceFuse AWS Reference Architecture (ARC) Terraform module for managing the AWS MSK module.
 
 ## Features
 - Create an MSK cluster with customizable broker configuration
@@ -36,8 +36,10 @@ To see a full example, check out the [main.tf](https://github.com/sourcefuse/ter
 ### Basic Usage
 ```hcl
 module "msk" {
-  source                 = "../.."
-  create_msk_cluster     = true
+  source      = "sourcefuse/arc-msk/aws"
+  version     = "0.0.1"
+
+  cluster_type           = "provisioned"
   cluster_name           = "example-msk-cluster"
   kafka_version          = "3.6.0"
   number_of_broker_nodes = 2
@@ -51,6 +53,7 @@ module "msk" {
   client_authentication = {
     sasl_scram_enabled           = true # When set to true, this will create secrets in AWS Secrets Manager.
     allow_unauthenticated_access = false
+    sasl_iam_enabled             = true
   }
   # Enable CloudWatch logging
   logging_info = {
@@ -104,36 +107,33 @@ No resources.
 | <a name="input_broker_instance_type"></a> [broker\_instance\_type](#input\_broker\_instance\_type) | Specify the instance type to use for the kafka brokers. e.g. kafka.m5.large | `string` | `"kafka.m5.large"` | no |
 | <a name="input_broker_storage"></a> [broker\_storage](#input\_broker\_storage) | Broker EBS storage configuration | <pre>object({<br/>    volume_size                    = number<br/>    provisioned_throughput_enabled = optional(bool, false)<br/>    volume_throughput              = optional(number)<br/>  })</pre> | <pre>{<br/>  "volume_size": 100<br/>}</pre> | no |
 | <a name="input_capacity_mode"></a> [capacity\_mode](#input\_capacity\_mode) | The capacity mode for MSK Connect: 'autoscaling' or 'provisioned' | `string` | `"autoscaling"` | no |
-| <a name="input_client_authentication"></a> [client\_authentication](#input\_client\_authentication) | Cluster-level client authentication options | <pre>object({<br/>    sasl_scram_enabled             = optional(bool, false)<br/>    sasl_iam_enabled               = optional(bool, false)<br/>    tls_certificate_authority_arns = optional(list(string), [])<br/>    allow_unauthenticated_access   = optional(bool, false)<br/>  })</pre> | `{}` | no |
+| <a name="input_client_authentication"></a> [client\_authentication](#input\_client\_authentication) | Cluster-level client authentication options | <pre>object({<br/>    sasl_scram_enabled             = optional(bool, false)<br/>    sasl_iam_enabled               = optional(bool, true)<br/>    tls_certificate_authority_arns = optional(list(string), [])<br/>    allow_unauthenticated_access   = optional(bool, false)<br/>  })</pre> | `{}` | no |
 | <a name="input_client_broker_encryption"></a> [client\_broker\_encryption](#input\_client\_broker\_encryption) | Encryption setting for client broker communication. Valid values: TLS, TLS\_PLAINTEXT, and PLAINTEXT | `string` | `"TLS"` | no |
-| <a name="input_client_subnets"></a> [client\_subnets](#input\_client\_subnets) | A list of subnets to connect to in client VPC. If not provided, private subnets will be fetched using tags | `list(string)` | `[]` | no |
 | <a name="input_cloudwatch_retention_in_days"></a> [cloudwatch\_retention\_in\_days](#input\_cloudwatch\_retention\_in\_days) | CloudWatch Retention Period Days | `number` | `7` | no |
-| <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | Name of the MSK cluster | `string` | `""` | no |
-| <a name="input_configuration_info"></a> [configuration\_info](#input\_configuration\_info) | Configuration block for MSK | <pre>object({<br/>    create_configuration      = bool<br/>    configuration_name        = optional(string)<br/>    configuration_description = optional(string)<br/>    server_properties         = optional(string)<br/>    configuration_arn         = optional(string)<br/>    configuration_revision    = optional(number)<br/>  })</pre> | <pre>{<br/>  "create_configuration": false<br/>}</pre> | no |
-| <a name="input_connectivity_info"></a> [connectivity\_info](#input\_connectivity\_info) | Connectivity settings for public and VPC access | <pre>object({<br/>    public_access_enabled = optional(bool, false)<br/>    public_access_type    = optional(string, "SERVICE_PROVIDED_EIPS") # or "DISABLED"<br/>  })</pre> | `{}` | no |
+| <a name="input_cluster_configuration"></a> [cluster\_configuration](#input\_cluster\_configuration) | Configuration block for MSK | <pre>object({<br/>    create_configuration      = bool<br/>    configuration_name        = optional(string)<br/>    configuration_description = optional(string)<br/>    server_properties         = optional(string)<br/>    configuration_arn         = optional(string)<br/>    configuration_revision    = optional(number)<br/>  })</pre> | <pre>{<br/>  "create_configuration": false<br/>}</pre> | no |
+| <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | Name of the MSK cluster | `string` | `null` | no |
+| <a name="input_cluster_type"></a> [cluster\_type](#input\_cluster\_type) | Type of MSK cluster. Valid values: provisioned ,serverless or null | `string` | `null` | no |
+| <a name="input_connectivity_config"></a> [connectivity\_config](#input\_connectivity\_config) | Connectivity settings for public and VPC access | <pre>object({<br/>    public_access_enabled = optional(bool, false)<br/>    public_access_type    = optional(string, "SERVICE_PROVIDED_EIPS") # or "DISABLED"<br/>  })</pre> | `{}` | no |
 | <a name="input_connector_configuration"></a> [connector\_configuration](#input\_connector\_configuration) | Configuration map for the connector | `map(string)` | `{}` | no |
 | <a name="input_connector_name"></a> [connector\_name](#input\_connector\_name) | Name of the MSK Connect connector | `string` | `""` | no |
 | <a name="input_create_cluster_policy"></a> [create\_cluster\_policy](#input\_create\_cluster\_policy) | Whether to create the MSK cluster policy | `bool` | `false` | no |
 | <a name="input_create_connector"></a> [create\_connector](#input\_create\_connector) | Whether to create the MSK connector | `bool` | `false` | no |
 | <a name="input_create_custom_plugin"></a> [create\_custom\_plugin](#input\_create\_custom\_plugin) | Whether to create the custom plugin | `bool` | `false` | no |
-| <a name="input_create_kms_key"></a> [create\_kms\_key](#input\_create\_kms\_key) | Whether to create a new KMS key | `bool` | `false` | no |
-| <a name="input_create_msk_cluster"></a> [create\_msk\_cluster](#input\_create\_msk\_cluster) | Flag to control creation of MSK Standard cluster | `bool` | `false` | no |
 | <a name="input_create_msk_components"></a> [create\_msk\_components](#input\_create\_msk\_components) | Flag to control creation of MSK Standard cluster | `bool` | `false` | no |
-| <a name="input_create_msk_serverless"></a> [create\_msk\_serverless](#input\_create\_msk\_serverless) | Flag to control creation of MSK serverless cluster | `bool` | `false` | no |
 | <a name="input_create_worker_configuration"></a> [create\_worker\_configuration](#input\_create\_worker\_configuration) | Whether to create the worker configuration | `bool` | `false` | no |
 | <a name="input_encryption_type"></a> [encryption\_type](#input\_encryption\_type) | Encryption type (e.g., TLS, PLAINTEXT) | `string` | `""` | no |
 | <a name="input_enhanced_monitoring"></a> [enhanced\_monitoring](#input\_enhanced\_monitoring) | Specify the desired enhanced MSK CloudWatch monitoring level. Valid values: DEFAULT, PER\_BROKER, PER\_TOPIC\_PER\_BROKER, or PER\_TOPIC\_PER\_PARTITION | `string` | `"DEFAULT"` | no |
 | <a name="input_in_cluster_encryption"></a> [in\_cluster\_encryption](#input\_in\_cluster\_encryption) | Whether data communication among broker nodes is encrypted. Default is true | `bool` | `true` | no |
 | <a name="input_kafka_version"></a> [kafka\_version](#input\_kafka\_version) | Specify the desired Kafka software version | `string` | `"3.6.0"` | no |
 | <a name="input_kafkaconnect_version"></a> [kafkaconnect\_version](#input\_kafkaconnect\_version) | Version of Kafka Connect | `string` | `""` | no |
-| <a name="input_kms_key_arn"></a> [kms\_key\_arn](#input\_kms\_key\_arn) | KMS Key ARN | `string` | `""` | no |
+| <a name="input_kms_config"></a> [kms\_config](#input\_kms\_config) | Configuration for KMS key. If `create` is true, a new KMS key will be created. If false, provide an existing `key_arn`. | <pre>object({<br/>    create  = optional(bool, false)<br/>    key_arn = optional(string, null)<br/>  })</pre> | <pre>{<br/>  "create": false<br/>}</pre> | no |
 | <a name="input_log_delivery_cloudwatch_enabled"></a> [log\_delivery\_cloudwatch\_enabled](#input\_log\_delivery\_cloudwatch\_enabled) | Enable CloudWatch log delivery | `bool` | `false` | no |
 | <a name="input_log_delivery_firehose_delivery_stream"></a> [log\_delivery\_firehose\_delivery\_stream](#input\_log\_delivery\_firehose\_delivery\_stream) | Kinesis Firehose delivery stream name | `string` | `""` | no |
 | <a name="input_log_delivery_firehose_enabled"></a> [log\_delivery\_firehose\_enabled](#input\_log\_delivery\_firehose\_enabled) | Enable Firehose log delivery | `bool` | `false` | no |
 | <a name="input_log_delivery_s3_bucket"></a> [log\_delivery\_s3\_bucket](#input\_log\_delivery\_s3\_bucket) | S3 bucket name for log delivery | `string` | `""` | no |
 | <a name="input_log_delivery_s3_enabled"></a> [log\_delivery\_s3\_enabled](#input\_log\_delivery\_s3\_enabled) | Enable S3 log delivery | `bool` | `false` | no |
 | <a name="input_log_delivery_s3_prefix"></a> [log\_delivery\_s3\_prefix](#input\_log\_delivery\_s3\_prefix) | S3 prefix for log delivery | `string` | `""` | no |
-| <a name="input_logging_info"></a> [logging\_info](#input\_logging\_info) | Logging settings | <pre>object({<br/>    cloudwatch_logs_enabled           = optional(bool, false)<br/>    cloudwatch_log_group              = optional(string)<br/>    cloudwatch_logs_retention_in_days = optional(number)<br/>    firehose_logs_enabled             = optional(bool, false)<br/>    firehose_delivery_stream          = optional(string)<br/>    s3_logs_enabled                   = optional(bool, false)<br/>    s3_logs_bucket                    = optional(string)<br/>    s3_logs_prefix                    = optional(string)<br/>  })</pre> | `{}` | no |
+| <a name="input_logging_config"></a> [logging\_config](#input\_logging\_config) | Logging settings | <pre>object({<br/>    cloudwatch_logs_enabled           = optional(bool, false)<br/>    cloudwatch_log_group              = optional(string)<br/>    cloudwatch_logs_retention_in_days = optional(number)<br/>    firehose_logs_enabled             = optional(bool, false)<br/>    firehose_delivery_stream          = optional(string)<br/>    s3_logs_enabled                   = optional(bool, false)<br/>    s3_logs_bucket                    = optional(string)<br/>    s3_logs_prefix                    = optional(string)<br/>  })</pre> | `{}` | no |
 | <a name="input_monitoring_info"></a> [monitoring\_info](#input\_monitoring\_info) | Open monitoring exporter settings | <pre>object({<br/>    jmx_exporter_enabled  = optional(bool, false)<br/>    node_exporter_enabled = optional(bool, false)<br/>  })</pre> | `{}` | no |
 | <a name="input_msk_connector_policy_arns"></a> [msk\_connector\_policy\_arns](#input\_msk\_connector\_policy\_arns) | List of IAM policy ARNs to attach to the MSK Connector execution role | `map(string)` | `{}` | no |
 | <a name="input_number_of_broker_nodes"></a> [number\_of\_broker\_nodes](#input\_number\_of\_broker\_nodes) | The desired total number of broker nodes in the kafka cluster. It must be a multiple of the number of specified client subnets | `number` | `2` | no |
@@ -148,14 +148,12 @@ No resources.
 | <a name="input_sasl_iam_enabled"></a> [sasl\_iam\_enabled](#input\_sasl\_iam\_enabled) | Enable IAM-based SASL authentication | `bool` | `true` | no |
 | <a name="input_scale_in_cpu_utilization_percentage"></a> [scale\_in\_cpu\_utilization\_percentage](#input\_scale\_in\_cpu\_utilization\_percentage) | CPU utilization percentage for scale-in | `number` | `20` | no |
 | <a name="input_scale_out_cpu_utilization_percentage"></a> [scale\_out\_cpu\_utilization\_percentage](#input\_scale\_out\_cpu\_utilization\_percentage) | CPU utilization percentage for scale-out | `number` | `75` | no |
-| <a name="input_scram_password"></a> [scram\_password](#input\_scram\_password) | SCRAM password for MSK authentication (optional, will be generated if not provided) | `string` | `null` | no |
-| <a name="input_scram_username"></a> [scram\_username](#input\_scram\_username) | SCRAM username for MSK authentication (optional, will be generated if not provided) | `string` | `null` | no |
+| <a name="input_scram_credentials"></a> [scram\_credentials](#input\_scram\_credentials) | SCRAM credentials for MSK authentication.<br/>- username: Optional. Will be generated if not provided.<br/>- password: Optional. Will be generated if not provided. | <pre>object({<br/>    username = optional(string)<br/>    password = optional(string)<br/>  })</pre> | `null` | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | List of security group IDs (up to five) | `list(string)` | `[]` | no |
 | <a name="input_security_groups"></a> [security\_groups](#input\_security\_groups) | A list of security group IDs to associate with the MSK cluster | `list(string)` | `[]` | no |
 | <a name="input_storage_autoscaling_config"></a> [storage\_autoscaling\_config](#input\_storage\_autoscaling\_config) | Configuration for MSK broker storage autoscaling | <pre>object({<br/>    enabled      = bool<br/>    max_capacity = optional(number, 250)<br/>    role_arn     = optional(string, "")<br/>    target_value = optional(number, 70)<br/>  })</pre> | <pre>{<br/>  "enabled": false<br/>}</pre> | no |
 | <a name="input_storage_mode"></a> [storage\_mode](#input\_storage\_mode) | Controls storage mode for supported storage tiers. Valid values are: LOCAL or TIERED | `string` | `null` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs in at least two different Availability Zones | `list(string)` | `[]` | no |
-| <a name="input_subnets"></a> [subnets](#input\_subnets) | List of subnet IDs | `list(string)` | `[]` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | A map of tags to assign to the MSK resources | `map(string)` | `{}` | no |
 | <a name="input_vpc_connections"></a> [vpc\_connections](#input\_vpc\_connections) | A map of MSK VPC connection configurations.<br/>Each key is a unique connection name and value is an object with:<br/>- authentication<br/>- client\_subnets<br/>- security\_groups<br/>- target\_cluster\_arn<br/>- vpc\_id<br/>- tags (optional) | <pre>map(object({<br/>    authentication  = string<br/>    client_subnets  = list(string)<br/>    security_groups = list(string)<br/>    vpc_id          = string<br/>  }))</pre> | `{}` | no |
 | <a name="input_vpc_connectivity_client_authentication"></a> [vpc\_connectivity\_client\_authentication](#input\_vpc\_connectivity\_client\_authentication) | Client authentication for VPC connectivity | <pre>object({<br/>    sasl_scram_enabled             = optional(bool, false)<br/>    sasl_iam_enabled               = optional(bool, false)<br/>    tls_certificate_authority_arns = optional(list(string), [])<br/>  })</pre> | `{}` | no |
