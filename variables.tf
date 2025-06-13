@@ -52,12 +52,11 @@ variable "broker_instance_type" {
   default     = "kafka.m5.large"
 }
 
-variable "security_groups" {
-  description = "A list of security group IDs to associate with the MSK cluster"
+variable "security_group_ids" {
+  description = "List of security group IDs (up to five)"
   type        = list(string)
   default     = []
 }
-
 
 variable "az_distribution" {
   description = "The distribution of broker nodes across availability zones. Currently the only valid value is DEFAULT"
@@ -272,11 +271,6 @@ variable "subnet_ids" {
 
 }
 
-variable "security_group_ids" {
-  description = "List of security group IDs (up to five)"
-  type        = list(string)
-  default     = []
-}
 
 variable "sasl_iam_enabled" {
   description = "Enable IAM-based SASL authentication"

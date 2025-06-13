@@ -59,7 +59,6 @@ module "msk" {
   tags = module.tags.tags
 }
 ```
-
 ### MSK Connect Data Sink: Aurora PostgreSQL to Amazon S3
 
 #### This Terraform example provisions MSK Connect components that enable data ingestion from an Amazon Aurora PostgreSQL database into Amazon S3, using Kafka Connect and Confluent plugins.

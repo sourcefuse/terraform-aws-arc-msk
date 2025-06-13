@@ -24,7 +24,7 @@ module "msk" {
   number_of_broker_nodes = 2
   broker_instance_type   = "kafka.m5.large"
   subnet_ids             = data.aws_subnets.public.ids
-  security_groups        = [module.security_group.id]
+  security_group_ids     = [module.security_group.id]
   broker_storage = {
     volume_size = 150
   }

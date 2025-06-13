@@ -75,9 +75,9 @@ module "msk_connect" {
   scale_out_cpu_utilization_percentage = 75
 
   # Networking
-  bootstrap_servers = module.msk.bootstrap_brokers_sasl_iam
-  security_groups   = [module.security_group.id]
-  subnet_ids        = data.aws_subnets.public.ids
+  bootstrap_servers  = module.msk.bootstrap_brokers_sasl_iam
+  security_group_ids = [module.security_group.id]
+  subnet_ids         = data.aws_subnets.public.ids
 
   # Authentication and Encryption
   authentication_type = "IAM" # or "NONE"
@@ -155,9 +155,9 @@ module "msk_s3_sink" {
   scale_out_cpu_utilization_percentage = 75
 
   # Networking
-  bootstrap_servers = module.msk.bootstrap_brokers_sasl_iam
-  security_groups   = [module.security_group.id]
-  subnet_ids        = data.aws_subnets.public.ids
+  bootstrap_servers  = module.msk.bootstrap_brokers_sasl_iam
+  security_group_ids = [module.security_group.id]
+  subnet_ids         = data.aws_subnets.public.ids
 
   # Authentication and Encryption
   authentication_type = "IAM" # or "NONE"
@@ -191,7 +191,7 @@ module "msk" {
   number_of_broker_nodes = 2
   broker_instance_type   = "kafka.t3.small"
   subnet_ids             = data.aws_subnets.public.ids
-  security_groups        = [module.security_group.id]
+  security_group_ids     = [module.security_group.id]
 
 
   # Enhanced monitoring

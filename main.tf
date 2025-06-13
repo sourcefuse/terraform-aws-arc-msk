@@ -11,7 +11,7 @@ module "msk_cluster" {
   number_of_broker_nodes = var.number_of_broker_nodes
   broker_instance_type   = var.broker_instance_type
   client_subnets         = var.subnet_ids
-  security_groups        = var.security_groups
+  security_groups        = var.security_group_ids
   az_distribution        = var.az_distribution
 
   # Encryption

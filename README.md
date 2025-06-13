@@ -70,6 +70,98 @@ module "msk" {
 }
 ```
 
+### MSK Connect Data Sink: Aurora PostgreSQL to Amazon S3
+
+#### This Terraform example provisions MSK Connect components that enable data ingestion from an Amazon Aurora PostgreSQL database into Amazon S3, using Kafka Connect and Confluent plugins.
+
+Prerequisites:
+
+Before running the Terraform example in  [example/msk-connect](https://github.com/sourcefuse/terraform-aws-arc-msk/blob/feature/fix-docs/examples/msk-connect/main.tf), ensure the following components are pre-configured in your AWS environment:
+Aurora PostgreSQL Setup
+  - An Aurora PostgreSQL cluster is already created.
+  - A database named myapp is created within the cluster.
+  - A sample table named users is present under schema public with sample data inserted.
+
+VPC Configuration
+  - A VPC Endpoint for S3 (Gateway type) is created to allow private communication between MSK Connect and S3.
+
+Plugins Downloaded and Uploaded to S3
+
+Download the required Kafka Connect plugins and upload them to the appropriate S3 bucket:
+JDBC Source Plugin
+  - Plugin: confluentinc-kafka-connect-jdbc-10.6.6.zip
+  - Download: https://www.confluent.io/hub/confluentinc/kafka-connect-jdbc
+
+S3 Sink Plugin
+  - Plugin: confluentinc-kafka-connect-s3-10.6.6.zip
+  - Download: https://www.confluent.io/hub/confluentinc/kafka-connect-s3
+
+## Module Overview
+
+Once the above prerequisites are met, you can deploy the Terraform example to configure the data pipeline using:
+
+```hcl
+# Source Connector
+
+module "msk_connect" {
+  source = "../.."
+
+  # Enables MSK Connect components and plugins for source
+  create_msk_components        = true
+  create_custom_plugin         = true
+  create_worker_configuration  = false
+  create_connector             = true
+
+  # Plugin and connector configurations
+  plugin_name          = "jdbc-pg-plugin"
+  plugin_content_type  = "ZIP"
+  plugin_description   = "Custom plugin for MSK Connect"
+  plugin_s3_bucket_arn = module.s3.bucket_arn
+  plugin_s3_file_key   = "confluentinc-kafka-connect-jdbc-10.6.6.zip"
+
+  connector_name       = "msk-pg-connector"
+  kafkaconnect_version = "2.7.1"
+
+  connector_configuration = {
+    "connector.class" : "io.confluent.connect.jdbc.JdbcSourceConnector",
+    ...
+    "connection.url" : "jdbc:postgresql://${data.aws_ssm_parameter.db_endpoint.value}:5432/myapp"
+  }
+
+  ...
+}
+
+# Sink Connector
+
+module "msk_s3_sink" {
+  source = "../.."
+
+  # Enables MSK Connect components and plugins for destination
+  create_msk_components        = true
+  create_custom_plugin         = true
+  create_worker_configuration  = false
+  create_connector             = true
+
+  plugin_name          = "s3-sink-plugin"
+  plugin_content_type  = "ZIP"
+  plugin_description   = "Custom plugin for MSK Connect"
+  plugin_s3_bucket_arn = module.s3.bucket_arn
+  plugin_s3_file_key   = "confluentinc-kafka-connect-s3-10.6.6.zip"
+
+  connector_name       = "msk-s3-sink-connector"
+  kafkaconnect_version = "2.7.1"
+
+  connector_configuration = {
+    "connector.class" : "io.confluent.connect.s3.S3SinkConnector",
+    ...
+    "s3.bucket.name" : module.s3.bucket_id
+  }
+
+  ...
+}
+```
+These modules will create MSK Connect plugins and connectors, enabling a seamless stream of data from PostgreSQL (public.users table) to S3 (cdc_aurora_users topic)
+
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Requirements
 
@@ -150,7 +242,6 @@ No resources.
 | <a name="input_scale_out_cpu_utilization_percentage"></a> [scale\_out\_cpu\_utilization\_percentage](#input\_scale\_out\_cpu\_utilization\_percentage) | CPU utilization percentage for scale-out | `number` | `75` | no |
 | <a name="input_scram_credentials"></a> [scram\_credentials](#input\_scram\_credentials) | SCRAM credentials for MSK authentication.<br/>- username: Optional. Will be generated if not provided.<br/>- password: Optional. Will be generated if not provided. | <pre>object({<br/>    username = optional(string)<br/>    password = optional(string)<br/>  })</pre> | `null` | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | List of security group IDs (up to five) | `list(string)` | `[]` | no |
-| <a name="input_security_groups"></a> [security\_groups](#input\_security\_groups) | A list of security group IDs to associate with the MSK cluster | `list(string)` | `[]` | no |
 | <a name="input_storage_autoscaling_config"></a> [storage\_autoscaling\_config](#input\_storage\_autoscaling\_config) | Configuration for MSK broker storage autoscaling | <pre>object({<br/>    enabled      = bool<br/>    max_capacity = optional(number, 250)<br/>    role_arn     = optional(string, "")<br/>    target_value = optional(number, 70)<br/>  })</pre> | <pre>{<br/>  "enabled": false<br/>}</pre> | no |
 | <a name="input_storage_mode"></a> [storage\_mode](#input\_storage\_mode) | Controls storage mode for supported storage tiers. Valid values are: LOCAL or TIERED | `string` | `null` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs in at least two different Availability Zones | `list(string)` | `[]` | no |

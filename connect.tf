@@ -37,7 +37,7 @@ module "msk_connect" {
   scale_out_cpu_utilization_percentage = var.scale_out_cpu_utilization_percentage
 
   bootstrap_servers = var.bootstrap_servers
-  security_groups   = var.security_groups
+  security_groups   = var.security_group_ids
   subnets           = var.subnet_ids
 
   authentication_type = var.authentication_type
