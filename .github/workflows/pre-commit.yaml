@@ -26,8 +26,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.ARC_JOB_TOKEN }}
 
       - uses: actions/setup-python@v3
 
@@ -46,9 +44,4 @@ jobs:
           curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.0
-        continue-on-error: true # we want to push the changes pre-commit makes
-
-      - name: Push pre-commit changes to branch
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: Push pre-commit changes
+        continue-on-error: false # we want to push the changes pre-commit makes
