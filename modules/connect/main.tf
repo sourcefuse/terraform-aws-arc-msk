@@ -90,15 +90,24 @@ resource "aws_mskconnect_connector" "this" {
     encryption_type = var.encryption_type
   }
 
-  dynamic "plugin" {
-    for_each = var.create_custom_plugin ? [1] : []
-    content {
-      custom_plugin {
-        arn      = aws_mskconnect_custom_plugin.this[0].arn
-        revision = aws_mskconnect_custom_plugin.this[0].latest_revision
-      }
+  # dynamic "plugin" {
+  #   for_each = var.create_custom_plugin ? [1] : []
+  #   content {
+  #     custom_plugin {
+  #       arn      = aws_mskconnect_custom_plugin.this[0].arn
+  #       revision = aws_mskconnect_custom_plugin.this[0].latest_revision
+  #     }
+  #   }
+  # }
+dynamic "plugin" {
+  for_each = var.create_custom_plugin ? [1] : (var.existing_plugin_arn != null ? [1] : [])
+  content {
+    custom_plugin {
+      arn      = var.create_custom_plugin ? aws_mskconnect_custom_plugin.this[0].arn : var.existing_plugin_arn
+      revision = var.create_custom_plugin ? aws_mskconnect_custom_plugin.this[0].latest_revision : var.existing_plugin_revision
     }
   }
+}
 
   dynamic "worker_configuration" {
     for_each = var.create_worker_configuration ? [1] : []

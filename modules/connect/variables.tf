@@ -47,6 +47,18 @@ variable "worker_config_name" {
   type        = string
 }
 
+variable "existing_plugin_arn" {
+  description = "ARN of an existing custom plugin (used when create_custom_plugin = false)"
+  type        = string
+  default     = null
+}
+
+variable "existing_plugin_revision" {
+  description = "Revision of the existing custom plugin"
+  type        = number
+  default     = null
+}
+
 variable "worker_properties_file_content" {
   description = "Contents of the connect-distributed.properties file"
   type        = string

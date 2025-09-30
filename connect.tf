@@ -18,6 +18,9 @@ module "msk_connect" {
   plugin_s3_bucket_arn = var.plugin_s3_bucket_arn
   plugin_s3_file_key   = var.plugin_s3_file_key
 
+  existing_plugin_arn      = var.existing_plugin_revision
+  existing_plugin_revision = var.existing_plugin_revision
+
   worker_config_name             = var.worker_config_name
   worker_properties_file_content = var.worker_properties_file_content
   worker_config_description      = var.worker_config_description
