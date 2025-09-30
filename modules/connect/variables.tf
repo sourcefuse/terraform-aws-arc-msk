@@ -50,13 +50,13 @@ variable "worker_config_name" {
 variable "existing_plugin_arn" {
   description = "ARN of an existing custom plugin (used when create_custom_plugin = false)"
   type        = string
-  default     = null
+  default     = ""
 }
 
 variable "existing_plugin_revision" {
   description = "Revision of the existing custom plugin"
   type        = number
-  default     = null
+  default     = ""
 }
 
 variable "worker_properties_file_content" {
