@@ -56,7 +56,7 @@ variable "existing_plugin_arn" {
 variable "existing_plugin_revision" {
   description = "Revision of the existing custom plugin"
   type        = number
-  default     = ""
+  default     = null
 }
 
 variable "worker_properties_file_content" {
