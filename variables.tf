@@ -322,7 +322,7 @@ variable "plugin_s3_file_key" {
 variable "existing_plugin_arn" {
   description = "ARN of an existing custom plugin (used when create_custom_plugin = false)"
   type        = string
-  default     = ""
+  default     = null
 }
 
 variable "existing_plugin_revision" {
