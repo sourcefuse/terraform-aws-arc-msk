@@ -25,6 +25,9 @@ module "msk_connect" {
   worker_properties_file_content = var.worker_properties_file_content
   worker_config_description      = var.worker_config_description
 
+  existing_worker_configuration_arn      = var.existing_worker_configuration_arn
+  existing_worker_configuration_revision = var.existing_worker_configuration_revision
+
   connector_name          = var.connector_name
   kafkaconnect_version    = var.kafkaconnect_version
   connector_configuration = var.connector_configuration

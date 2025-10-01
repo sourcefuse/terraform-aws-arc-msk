@@ -349,6 +349,18 @@ variable "worker_config_description" {
   default     = null
 }
 
+variable "existing_worker_configuration_arn" {
+  type        = string
+  default     = null
+  description = "ARN of an existing MSK Connect worker configuration to use. Required if create_worker_configuration is false."
+}
+
+variable "existing_worker_configuration_revision" {
+  type        = number
+  default     = null
+  description = "Revision number of the existing MSK Connect worker configuration to use. Required if using an existing configuration."
+}
+
 variable "connector_name" {
   description = "Name of the MSK Connect connector"
   type        = string
