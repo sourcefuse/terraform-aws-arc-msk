@@ -319,6 +319,18 @@ variable "plugin_s3_file_key" {
   default     = ""
 }
 
+variable "existing_plugin_arn" {
+  description = "ARN of an existing custom plugin (used when create_custom_plugin = false)"
+  type        = string
+  default     = null
+}
+
+variable "existing_plugin_revision" {
+  description = "Revision of the existing custom plugin"
+  type        = number
+  default     = null
+}
+
 variable "worker_config_name" {
   description = "Name of the worker configuration"
   type        = string
@@ -335,6 +347,18 @@ variable "worker_config_description" {
   description = "Description of the worker configuration"
   type        = string
   default     = null
+}
+
+variable "existing_worker_configuration_arn" {
+  type        = string
+  default     = null
+  description = "ARN of an existing MSK Connect worker configuration to use. Required if create_worker_configuration is false."
+}
+
+variable "existing_worker_configuration_revision" {
+  type        = number
+  default     = null
+  description = "Revision number of the existing MSK Connect worker configuration to use. Required if using an existing configuration."
 }
 
 variable "connector_name" {

@@ -91,22 +91,30 @@ resource "aws_mskconnect_connector" "this" {
   }
 
   dynamic "plugin" {
-    for_each = var.create_custom_plugin ? [1] : []
+    for_each = var.create_custom_plugin || (var.existing_plugin_arn != null && var.existing_plugin_arn != "") ? [1] : []
     content {
       custom_plugin {
-        arn      = aws_mskconnect_custom_plugin.this[0].arn
-        revision = aws_mskconnect_custom_plugin.this[0].latest_revision
+        arn      = var.create_custom_plugin ? aws_mskconnect_custom_plugin.this[0].arn : var.existing_plugin_arn
+        revision = var.create_custom_plugin ? aws_mskconnect_custom_plugin.this[0].latest_revision : var.existing_plugin_revision
       }
     }
   }
 
+  # dynamic "worker_configuration" {
+  #   for_each = var.create_worker_configuration ? [1] : []
+  #   content {
+  #     arn      = aws_mskconnect_worker_configuration.this[0].arn
+  #     revision = aws_mskconnect_worker_configuration.this[0].latest_revision
+  #   }
+  # }
   dynamic "worker_configuration" {
-    for_each = var.create_worker_configuration ? [1] : []
+    for_each = var.create_worker_configuration || (var.existing_worker_configuration_arn != null && var.existing_worker_configuration_arn != "") ? [1] : []
     content {
-      arn      = aws_mskconnect_worker_configuration.this[0].arn
-      revision = aws_mskconnect_worker_configuration.this[0].latest_revision
+      arn      = var.create_worker_configuration ? aws_mskconnect_worker_configuration.this[0].arn : var.existing_worker_configuration_arn
+      revision = var.create_worker_configuration ? aws_mskconnect_worker_configuration.this[0].latest_revision : var.existing_worker_configuration_revision
     }
   }
+
 
   log_delivery {
     worker_log_delivery {
