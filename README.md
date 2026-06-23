@@ -17,6 +17,9 @@
 
 [![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=sourcefuse_terraform-aws-arc-msk&token=ad50d88e1098864c2906ef63bcfb9974003e670d)](https://sonarcloud.io/summary/new_code?id=sourcefuse_terraform-aws-arc-msk)
 
+> [!TIP]
+> 🤖 **New:** Use this module with AI assistants via the [ARC IaC MCP Server](https://github.com/sourcefuse/arc-iac-mcp) — search, scaffold, and security-scan ARC modules from natural language. [Quick setup ↓](#ai-assistant-integration-arc-iac-mcp)
+
 ## Overview
 
 Creates Amazon MSK (Managed Streaming for Apache Kafka) clusters with configurable authentication, encryption, monitoring, and MSK Connect.
